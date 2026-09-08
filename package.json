@@ -1,0 +1,20 @@
+{
+  "name": "little-rescue-pups",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A small, offline, unofficial rescue-pup game for family play.",
+  "scripts": {
+    "start": "node dev-server.mjs",
+    "test": "node --test game.test.mjs storage.test.mjs pwa.test.mjs",
+    "test:browser": "node --test browser.test.mjs",
+    "pages:stage": "node scripts\\stage-site.mjs",
+    "icons": "node scripts\\make-icons.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "PAW Patrol: little helpers",
+  "short_name": "Rescue pups",
+  "description": "An unofficial rescue-pup game with original drawings, for little helpers and their grown-ups.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4faff",
+  "theme_color": "#f4faff",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

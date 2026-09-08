@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Little helpers' paw badge</title>
+  <rect width="512" height="512" fill="#f4faff"/>
+  <path d="M147 126Q256 94 365 126L354 291Q339 349 256 388Q173 349 158 291Z" fill="#2463c4" stroke="#ffdb65" stroke-width="18" stroke-linejoin="round"/>
+  <g transform="translate(166 158) scale(1.5)" fill="#fffaf0">
+    <ellipse cx="60" cy="77" rx="29" ry="24"/>
+    <ellipse cx="27" cy="49" rx="13" ry="17" transform="rotate(-25 27 49)"/>
+    <ellipse cx="49" cy="30" rx="12" ry="17" transform="rotate(-8 49 30)"/>
+    <ellipse cx="76" cy="31" rx="12" ry="17" transform="rotate(10 76 31)"/>
+    <ellipse cx="97" cy="52" rx="12" ry="16" transform="rotate(28 97 52)"/>
+  </g>
+</svg>
