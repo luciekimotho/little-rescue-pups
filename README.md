@@ -51,7 +51,11 @@ A downloaded update waits while the game is open. 'Update and reopen' appears on
 
 The personal repository is [luciekimotho/little-rescue-pups](https://github.com/luciekimotho/little-rescue-pups). In its 'Settings', open 'Pages' and choose 'GitHub Actions' as the publishing source.
 
+For a private repository, your GitHub plan must support Pages for private repositories. Otherwise, publishing requires a plan upgrade or an explicit decision to make the repository public. Changing the repository's visibility also makes its source code public.
+
 After a push to `main`, `.github/workflows/pages.yml` runs the Node tests, copies only the public game files into a fresh `_site` folder, and deploys that folder. Development tools, tests, package files and personal saves are not part of the website. The workflow uses GitHub's short-lived deployment token; no personal token belongs in the repository or workflow.
+
+If a run stops at 'Configure GitHub Pages', resolve the plan or Pages settings first. Then rerun 'Publish game to GitHub Pages' from the repository's 'Actions' tab.
 
 After a successful deployment, the game URL is:
 
