@@ -9,15 +9,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>PAW Patrol: little helpers</title>
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" type="image/png" href="./icons/icon-192.png">
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" type="image/png" href="./assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="./src/styles/base.css">
+    <link rel="stylesheet" href="./src/styles/game.css">
+    <link rel="stylesheet" href="./src/styles/parents.css">
+    <link rel="stylesheet" href="./src/styles/placement.css">
 </head>
 <body>
     <div id="app"><p class="loading">Our pups are getting ready...</p></div>
     <div id="notice" role="alert" hidden></div>
     <dialog id="parents" aria-labelledby="parents-title"></dialog>
     <noscript><p class="loading">This game needs JavaScript enabled in your browser.</p></noscript>
-    <script type="module" src="./app.mjs"></script>
+    <script type="module" src="./src/app.mjs"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { PUPS } from "./game.mjs";
+import { PUPS } from "../game/missions.mjs";
 
 const ink = "#344943";
 
@@ -159,9 +159,10 @@ export function sceneArt(mission, step) {
             ${duck(success ? 870 : 398, success ? 335 : 358, .46)}
             <g stroke="#729b85" stroke-width="5" stroke-linecap="round"><path d="M892 404V365M902 409V375M429 428V400"/></g>`;
     } else if (mission.id === "bunny") {
-        scene = `<ellipse cx="701" cy="403" rx="139" ry="27" fill="#9cb38b"/><g transform="translate(644 228)">${bunny()}</g>
+        scene = `<ellipse cx="701" cy="403" rx="139" ry="27" fill="#9cb38b"/><g transform="translate(644 228)"><g class="${step ? "bunny-fed" : ""}">${bunny()}</g></g>
             <ellipse cx="569" cy="403" rx="69" ry="21" fill="#b88461"/><ellipse cx="569" cy="397" rx="65" ry="17" fill="#d2ae86"/>
-            ${Array.from({ length: step }, (_, i) => `<g transform="translate(${515 + i * 23} ${337 - i * 6}) scale(.6)">${icon("carrot").replace(/<\/?svg[^>]*>/g, "")}</g>`).join("")}
+            ${Array.from({ length: step }, (_, i) => `<g class="${i === step - 1 ? "delivered-carrot" : ""}" transform="translate(${515 + i * 23} ${337 - i * 6}) scale(.6)">${icon("carrot").replace(/<\/?svg[^>]*>/g, "")}</g>`).join("")}
+            ${step ? `<g transform="translate(759 217) scale(.3)">${icon("heart").replace(/<\/?svg[^>]*>/g, "")}</g>` : ""}
             ${flower(827, 363, "#eee7bb")}${flower(428, 356, "#eee7bb")}`;
     } else if (mission.id === "kitten") {
         scene = `<path d="M706 363Q694 223 704 142L744 139Q731 269 758 367Z" fill="#b1916d"/>

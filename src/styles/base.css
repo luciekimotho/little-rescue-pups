@@ -1,0 +1,11 @@
+:root { color-scheme: light; --paper: #f4faff; --ink: #244564; --muted: #61798d; --green: #2463c4; --green-dark: #17478f; --line: #d4e4f0; font-family: "Trebuchet MS", "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+button:focus-visible, input:focus-visible { outline: 4px solid #b26e41; outline-offset: 5px; }
+button:disabled { cursor: wait; }
+[hidden] { display: none !important; }
+svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+button svg { flex-shrink: 0; }
+button { transition: transform .16s ease, background .16s ease, box-shadow .16s ease; }
+button:active:not(:disabled) { transform: translateY(3px); }

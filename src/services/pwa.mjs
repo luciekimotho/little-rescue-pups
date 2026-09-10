@@ -1,3 +1,5 @@
+import { APP_BASE_URL } from "../paths.mjs";
+
 export function workerStatus(worker, timeout = 5000) {
     return new Promise((resolve, reject) => {
         const channel = new MessageChannel();
@@ -74,8 +76,8 @@ export function createPwa(onChange) {
                 else void checkOffline();
             });
             try {
-                registration = await navigator.serviceWorker.register(new URL("./sw.js", import.meta.url), {
-                    scope: new URL("./", import.meta.url).pathname,
+                registration = await navigator.serviceWorker.register(new URL("sw.js", APP_BASE_URL), {
+                    scope: APP_BASE_URL.pathname,
                     updateViaCache: "none",
                 });
                 const watch = worker => {

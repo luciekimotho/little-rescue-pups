@@ -1,7 +1,7 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { PUBLIC_FILES } from "../dev-server.mjs";
+import { PUBLIC_FILES, PROJECT_ROOT_URL } from "./site-files.mjs";
 
 export async function stageSite(destination = fileURLToPath(new URL("../_site/", import.meta.url))) {
     try {
@@ -13,7 +13,7 @@ export async function stageSite(destination = fileURLToPath(new URL("../_site/",
     for (const file of PUBLIC_FILES) {
         const target = join(destination, file);
         await mkdir(dirname(target), { recursive: true });
-        await copyFile(new URL(`../${file}`, import.meta.url), target);
+        await copyFile(new URL(file, PROJECT_ROOT_URL), target);
     }
     return PUBLIC_FILES.length;
 }

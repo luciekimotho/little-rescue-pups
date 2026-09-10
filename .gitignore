@@ -1,3 +1,5 @@
 node_modules/
 test-results/
 _site/
+.browser-profile-*/
+.test-pages-*/

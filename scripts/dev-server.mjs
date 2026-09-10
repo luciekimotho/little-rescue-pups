@@ -2,12 +2,9 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { PUBLIC_FILES, PROJECT_ROOT_URL } from "./site-files.mjs";
+export { PUBLIC_FILES } from "./site-files.mjs";
 
-export const PUBLIC_FILES = [
-    "index.html", "app.mjs", "art.mjs", "game.mjs", "storage.mjs", "pwa.mjs",
-    "style.css", "sw.js", "manifest.webmanifest", "icons/icon.svg",
-    "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png",
-];
 const MIME = {
     html: "text/html; charset=utf-8", mjs: "text/javascript; charset=utf-8",
     js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8",
@@ -34,7 +31,7 @@ export function createStaticServer({ basePath = "/", readAsset = readFile } = {}
             return;
         }
         try {
-            const body = await readAsset(new URL(file, import.meta.url));
+            const body = await readAsset(new URL(file, PROJECT_ROOT_URL));
             response.writeHead(200, {
                 "Content-Type": MIME[file.split(".").at(-1)],
                 "Cache-Control": "no-store",
@@ -58,7 +55,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     server.on("error", error => { console.error(error.message); process.exitCode = 1; });
     server.listen(port, "127.0.0.1", () => {
         console.log(`Rescue pups: http://localhost:${port}${values.base}`);
-        console.log(`Serving static files from ${fileURLToPath(new URL("./", import.meta.url))}`);
+        console.log(`Serving static files from ${fileURLToPath(PROJECT_ROOT_URL)}`);
         console.log("Local preview only. Phone installation needs an HTTPS host. Press Ctrl+C to stop.");
     });
 }

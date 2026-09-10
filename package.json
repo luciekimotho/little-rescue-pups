@@ -5,9 +5,9 @@
   "type": "module",
   "description": "A small, offline, unofficial rescue-pup game for family play.",
   "scripts": {
-    "start": "node dev-server.mjs",
-    "test": "node --test game.test.mjs storage.test.mjs pwa.test.mjs",
-    "test:browser": "node --test browser.test.mjs",
+    "start": "node scripts\\dev-server.mjs",
+    "test": "node --test tests/unit/*.test.mjs",
+    "test:browser": "node --test tests\\browser\\browser.test.mjs",
     "pages:stage": "node scripts\\stage-site.mjs",
     "icons": "node scripts\\make-icons.mjs"
   },

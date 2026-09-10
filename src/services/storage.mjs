@@ -1,6 +1,8 @@
-import { DEFAULT_STATE, transition, validState } from "./game.mjs";
+import { transition } from "../game/game.mjs";
+import { DEFAULT_STATE, validState, validProfileId } from "../game/profiles.mjs";
+import { APP_BASE_URL } from "../paths.mjs";
 
-export const SAVE_KEY = `little-rescue-pups:save:${new URL("./", import.meta.url).pathname}`;
+export const SAVE_KEY = `little-rescue-pups:profiles:v2:${APP_BASE_URL.pathname}`;
 
 export class SaveError extends Error {
     constructor(code, message, options = {}) {
@@ -54,12 +56,15 @@ export function createStore({
     return {
         key,
         load: () => decode(read()),
-        dispatch: action => runExclusive(() => {
+        dispatch: (profileId, action) => runExclusive(() => {
+            if (!validProfileId(profileId)) throw new Error("Choose Eden or Ethan to play.");
             const raw = read();
             const previous = decode(raw);
-            const result = transition(previous, action);
-            if (JSON.stringify(result.state) !== JSON.stringify(previous)) write(result.state, raw);
-            return result;
+            const result = transition(previous.profiles[profileId], action);
+            const state = { ...previous, profiles: { ...previous.profiles, [profileId]: result.state } };
+            if (!validState(state)) throw new SaveError("invalid", "The new profile progress is invalid. No changes were saved.");
+            if (JSON.stringify(state) !== JSON.stringify(previous)) write(state, raw);
+            return { state, feedback: result.feedback };
         }),
         resetInvalid: expectedRaw => runExclusive(() => {
             const raw = read();

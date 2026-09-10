@@ -1,12 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFile, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { PUBLIC_FILES, createStaticServer } from "./dev-server.mjs";
-import { stageSite } from "./scripts/stage-site.mjs";
+import { readFile, mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import { PUBLIC_FILES, createStaticServer } from "../../scripts/dev-server.mjs";
+import { PROJECT_ROOT_URL } from "../../scripts/site-files.mjs";
+import { stageSite } from "../../scripts/stage-site.mjs";
 
-const read = path => readFile(new URL(path, import.meta.url));
+const read = path => readFile(new URL(path, PROJECT_ROOT_URL));
 const manifest = JSON.parse(await read("manifest.webmanifest"));
 const sw = (await read("sw.js")).toString();
 const assets = [...sw.match(/const ASSETS = \[([\s\S]*?)\];/)[1].matchAll(/"([^"]+)"/g)].map(match => match[1]);
@@ -24,7 +26,7 @@ test("manifest has stable, relative identity, scope and start URL at root and a 
 });
 
 test("real PNG icons have declared dimensions, including maskable and Apple icons", async () => {
-    const icons = [...manifest.icons, { src: "./icons/apple-touch-icon.png", sizes: "180x180" }];
+    const icons = [...manifest.icons, { src: "./assets/icons/apple-touch-icon.png", sizes: "180x180" }];
     assert.ok(manifest.icons.some(icon => icon.purpose === "maskable"));
     for (const icon of icons) {
         const png = await read(icon.src);
@@ -34,11 +36,28 @@ test("real PNG icons have declared dimensions, including maskable and Apple icon
 });
 
 test("precache includes every public game file except the service worker itself", async () => {
+    assert.deepEqual(PUBLIC_FILES.filter(file => !file.includes("/")).sort(), ["index.html", "manifest.webmanifest", "sw.js"]);
     assert.deepEqual(
         assets.filter(asset => asset !== "./").map(asset => asset.slice(2)).sort(),
         PUBLIC_FILES.filter(file => file !== "sw.js").sort(),
     );
     for (const asset of assets) assert.ok((await read(asset === "./" ? "index.html" : asset)).length > 0);
+});
+
+test("every static module import and stylesheet is included in offline deployment", async () => {
+    const root = PROJECT_ROOT_URL;
+    for (const file of PUBLIC_FILES.filter(file => file.endsWith(".mjs"))) {
+        const source = (await read(file)).toString();
+        for (const match of source.matchAll(/\b(?:from\s*|import\s*)["'](\.\.?\/[^"']+)["']/g)) {
+            const dependency = new URL(match[1], new URL(file, root));
+            const relative = dependency.href.slice(root.href.length);
+            assert.ok(PUBLIC_FILES.includes(relative), `${file} imports uncached ${relative}`);
+        }
+    }
+    const html = (await read("index.html")).toString();
+    for (const match of html.matchAll(/<link rel="stylesheet" href="\.\/([^"]+)"/g)) {
+        assert.ok(PUBLIC_FILES.includes(match[1]), `Uncached stylesheet ${match[1]}`);
+    }
 });
 
 test("the development server exposes only public assets and rejects unsafe base paths", async () => {
@@ -50,7 +69,17 @@ test("the development server exposes only public assets and rejects unsafe base 
         const redirect = await fetch(`${base}/little-rescue-pups`, { redirect: "manual" });
         assert.equal(redirect.status, 308);
         assert.equal(redirect.headers.get("location"), "/little-rescue-pups/");
-        assert.match((await fetch(`${base}/little-rescue-pups/app.mjs`)).headers.get("content-type"), /javascript/);
+        const app = await fetch(`${base}/little-rescue-pups/src/app.mjs`);
+        assert.equal(app.status, 200);
+        assert.match(app.headers.get("content-type"), /javascript/);
+        assert.equal(await app.text(), (await read("src/app.mjs")).toString());
+        for (const file of [
+            "app.mjs", "art.mjs", "game.mjs", "missions.mjs", "profiles.mjs", "storage.mjs", "narration.mjs",
+            "sound.mjs", "pwa.mjs", "interactions.mjs", "screens.mjs", "parents.mjs", "style.css",
+            "icons/icon-192.png", "dev-server.mjs", "scripts/dev-server.mjs", "tests/unit/game.test.mjs",
+        ]) {
+            assert.equal((await fetch(`${base}/little-rescue-pups/${file}`)).status, 404, `${file} is not hosted`);
+        }
         assert.equal((await fetch(`${base}/little-rescue-pups/package.json`)).status, 404);
         assert.equal((await fetch(`${base}/little-rescue-pups/../package.json`)).status, 404);
         assert.equal((await fetch(`${base}/little-rescue-pups/`, { method: "POST" })).status, 405);
@@ -60,13 +89,14 @@ test("the development server exposes only public assets and rejects unsafe base 
 });
 
 test("Pages staging includes only runtime files and refuses to reuse an existing output folder", async t => {
-    const temporary = await mkdtemp(join(tmpdir(), "rescue-pups-pages-"));
-    t.after(() => rm(temporary, { recursive: true }));
-    const output = join(temporary, "site");
+    const workspace = join(fileURLToPath(PROJECT_ROOT_URL), `.test-pages-${randomUUID()}`);
+    await mkdir(workspace);
+    t.after(() => rm(workspace, { recursive: true, force: true }));
+    const output = join(workspace, "site");
     assert.equal(await stageSite(output), PUBLIC_FILES.length);
-    const entries = (await readdir(output, { recursive: true }))
-        .map(entry => entry.replaceAll("\\", "/"))
-        .filter(entry => entry !== "icons").sort();
+    const entries = (await readdir(output, { recursive: true, withFileTypes: true }))
+        .filter(entry => entry.isFile())
+        .map(entry => relative(output, join(entry.parentPath, entry.name)).replaceAll("\\", "/")).sort();
     assert.deepEqual(entries, [...PUBLIC_FILES].sort());
     for (const file of PUBLIC_FILES) {
         assert.deepEqual(await readFile(join(output, file)), await read(file));

@@ -1,0 +1,111 @@
+.placement-scene {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+[data-placement-tool] {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    cursor: grab;
+}
+
+[data-placement-tool] svg {
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+[data-placement-tool].is-placement-selected {
+    outline: 4px solid #2463c4;
+    outline-offset: 5px;
+    box-shadow: 0 0 0 9px #d8e9ff, 0 6px 0 #17478f;
+}
+
+[data-placement-tool].is-placement-selected:focus-visible {
+    outline-color: #b26e41;
+}
+
+[data-placement-tool].is-placement-dragging,
+[data-placement-tool].is-placement-dragging:active {
+    opacity: .6;
+    cursor: grabbing;
+    transform: none;
+}
+
+[data-drop-target] {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    min-width: 48px;
+    min-height: 48px;
+    margin: 0;
+    padding: 0;
+    border: 3px dashed #2463c477;
+    border-radius: 35%;
+    background: transparent;
+    color: var(--ink, #244564);
+    touch-action: manipulation;
+    pointer-events: auto;
+    transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+
+[data-drop-target]:active:not(:disabled) {
+    transform: none;
+}
+
+[data-drop-target].is-placement-ready {
+    border-color: #2463c4;
+    background: #d8e9ff16;
+    box-shadow: inset 0 0 0 2px #ffffffa6, 0 0 0 3px #ffffff80;
+}
+
+[data-drop-target].is-drop-active {
+    border-style: solid;
+    border-color: #17478f;
+    background: #d8e9ff33;
+    box-shadow: inset 0 0 0 3px #ffffffc2, 0 0 0 4px #2463c440;
+}
+
+[data-drop-target]:focus-visible {
+    outline: 4px solid #b26e41;
+    outline-offset: -6px;
+}
+
+.placement-ghost {
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    width: 88px;
+    height: 88px;
+    display: grid;
+    place-items: center;
+    padding: 6px;
+    border: 2px solid #ffffff;
+    border-radius: 22px;
+    background: #fffcf3ee;
+    box-shadow: 0 7px 18px #24456440;
+    pointer-events: none;
+    user-select: none;
+    font-size: 14px;
+    text-align: center;
+    will-change: transform;
+}
+
+.placement-ghost svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-placement-tool],
+    [data-drop-target] {
+        transition: none;
+        animation: none;
+    }
+}
