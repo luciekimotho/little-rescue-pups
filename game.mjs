@@ -56,6 +56,10 @@ export function transition(previous, action) {
     let feedback = "none";
     if (action.type === "start") {
         if (game.phase !== "welcome" && game.phase !== "rest") return { state, feedback };
+        if (action.mode !== undefined) {
+            if (!["tiny", "find"].includes(action.mode)) throw new Error("Unknown play style.");
+            state.settings.mode = action.mode;
+        }
         if (game.phase === "rest") game.round += 1;
         Object.assign(game, { phase: "playing", missionIndex: 0, step: 0 });
         feedback = "start";
@@ -85,11 +89,15 @@ export function transition(previous, action) {
             else throw new Error("Unknown setting or invalid setting value.");
         }
         feedback = "settings";
-    } else if (action.type === "home") {
+    } else if (action.type === "home" || action.type === "goodbye") {
+        if (action.type === "goodbye") {
+            if (game.phase !== "rest") return { state, feedback };
+            game.round += 1;
+        }
         game.phase = "welcome";
         game.missionIndex = 0;
         game.step = 0;
-        feedback = "home";
+        feedback = action.type;
     } else {
         throw new Error("Unknown game action.");
     }

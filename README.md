@@ -4,6 +4,14 @@ A standalone, installable game for little helpers aged 2 to 4. This keeps the or
 
 This is an unofficial PAW Patrol fan game with original drawings. It is not affiliated with or endorsed by the rights holders. It contains no official artwork, recordings or character voices.
 
+## Choose who's playing
+
+On the home screen, choose **EDEN** for the 2-year-old's tap-anywhere game or **ETHAN** for the 4-year-old's picture-matching game. Each button selects the play style and starts an outing. With a keyboard, Tab to a name and press Enter or Space. Tapping the home-screen scenery does not choose a player accidentally.
+
+During Eden's game, taps in the main play area and letter, number, arrow or space keys still help. Ethan's game presents three big pictures to match. Both choices keep the grown-up sound, voice and animation settings. These are play-style shortcuts, not separate accounts or saves.
+
+After three rescues, 'Bye, pups!' returns to the home screen with Eden and Ethan's buttons. The next outing moves on to the next rescue stories. To return home during an outing, open 'Grown-ups' and select 'Back to start'. Existing saved outings still resume where they left off when the game reopens.
+
 ## Run on this computer
 
 Install Node.js 22 or newer. From PowerShell:

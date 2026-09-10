@@ -15,7 +15,6 @@ let lockUntil = 0;
 let hintTimer;
 let audio;
 let voice;
-let goodbyeCount = 0;
 const toolNames = { bridge: "bridge", carrot: "carrot", ladder: "ladder", water: "watering can", bucket: "bucket" };
 
 function chooseVoice() {
@@ -91,7 +90,7 @@ function header() {
 function footer() {
     return `<footer class="footer">
         <span class="footer-note">${icon("heart")}Adventure Bay's little helpers</span>
-        <span class="mode-indicator">${state.settings.mode === "tiny" ? "Little paws \u00b7 tap anywhere" : "Clever paws \u00b7 match pictures"}</span>
+        <span class="mode-indicator">${state.game.phase === "welcome" ? "Two ways to play" : state.settings.mode === "tiny" ? "Little paws \u00b7 tap anywhere" : "Clever paws \u00b7 match pictures"}</span>
     </footer>`;
 }
 
@@ -101,8 +100,12 @@ function renderWelcome() {
         <h1>Let's help<br><span class="hero-accent">with Chase!</span></h1>
         <p class="subtitle">Chase, Marshall and Skye are ready to play.</p></div>
         <div class="welcome-picture" role="img" aria-label="Marshall in his red firefighter helmet, Chase in his blue police uniform, and Skye with her pink flying goggles, outside the Lookout.">${welcomeArt()}<span class="name-tag marshall">Marshall</span><span class="name-tag chase">Chase</span><span class="name-tag skye">Skye</span></div>
-        <div class="start-area"><button class="primary nudge" data-action="start" aria-label="Play with Chase and the rescue pups">${icon("play")}Let's play</button>
-        <p class="parent-hint">${state.settings.mode === "tiny" ? "Tap anywhere, click, or press a letter key. Every little help counts." : "Look at the picture. Tap the one that matches."}<br>Grown-ups can change the play style at the top.</p></div>
+        <div class="start-area">
+        <div class="player-choices" role="group" aria-label="Choose who's playing">
+            <button class="primary player-button eden nudge" data-action="start" data-start-mode="tiny" aria-label="EDEN with Skye, age 2, tap anywhere">${crewArt("skye")}<b>EDEN</b></button>
+            <button class="primary player-button ethan nudge" data-action="start" data-start-mode="find" aria-label="ETHAN with Chase, age 4, match pictures">${crewArt("chase")}<b>ETHAN</b></button>
+        </div>
+        <p class="parent-hint">Choose your name to start a little rescue.<br>Grown-ups can change the play style at the top.</p></div>
         <div class="crew-strip" aria-label="More rescue friends">${["rubble", "rocky", "zuma"].map(id => `<div class="crew-member" style="--crew-color:${PUPS[id].color}"><span class="crew-face">${crewArt(id)}</span><span><b>${PUPS[id].name}</b><small>${PUPS[id].role}</small></span></div>`).join("")}</div>
     </main>`;
 }
@@ -132,7 +135,7 @@ function renderRest() {
     return `<main class="rest">
         <div class="intro"><p class="eyebrow">Back to the Lookout</p><h1>Happy friends.<br>Sleepy pups.</h1><p class="subtitle">Chase and the team are resting. Time for a cuddle.</p></div>
         <div class="welcome-picture">${welcomeArt(true)}</div>
-        <div class="start-area"><button class="primary" data-action="goodbye" aria-label="Wave goodbye to the pups">${icon("paw")}Bye, pups!</button><p class="wave-note" aria-live="polite" id="goodbye-note">You were a kind helper today.</p></div>
+        <div class="start-area"><button class="primary" data-action="goodbye" aria-label="Bye, pups! Back to home">${icon("paw")}Bye, pups!</button><p class="wave-note">You were a kind helper today.</p></div>
     </main>`;
 }
 
@@ -152,7 +155,7 @@ function showHint() {
 }
 
 function prompt() {
-    if (state.game.phase === "welcome") return "Hi, little helper! Let's play with Chase, Marshall and Skye!";
+    if (state.game.phase === "welcome") return "Let's play with Chase, Marshall and Skye! Choose Eden to tap anywhere, or Ethan to match pictures.";
     if (state.game.phase === "rest") return "You helped all our friends in Adventure Bay. Chase and the pups are resting now. Time for a cuddle. Bye bye!";
     const mission = currentMission(state);
     if (state.game.phase === "celebrate") return `${mission.success} ${state.game.missionIndex === 2 ? "All done!" : "Tap the arrow for another friend."}`;
@@ -220,6 +223,10 @@ async function send(action) {
         } else if (result.feedback === "settings") {
             if (!state.settings.voice) stopSpeech();
             if (!state.settings.sound && audio?.state === "running") await audio.suspend();
+        } else if (result.feedback === "goodbye") {
+            lockUntil = performance.now() + 650;
+            say("Bye bye, little helper!");
+            chime();
         } else if (result.feedback === "home") {
             stopSpeech();
         }
@@ -297,19 +304,10 @@ function closeParents() {
     say(prompt());
 }
 
-function play(action, tool) {
+function play(action, tool, mode) {
     if (busy || parents.open || performance.now() < lockUntil) return;
     unlockAudio();
-    if (action === "goodbye") {
-        goodbyeCount += 1;
-        const note = document.querySelector("#goodbye-note");
-        if (note) note.textContent = goodbyeCount % 2 ? "Bye, little helper. See you another day!" : "Chase, Marshall and Skye send you a cuddle.";
-        say("Bye bye, little helper!");
-        chime();
-        lockUntil = performance.now() + 1000;
-    } else {
-        send({ type: action === "choose" ? "help" : action, ...(tool ? { tool } : {}) });
-    }
+    send({ type: action === "choose" ? "help" : action, ...(tool ? { tool } : {}), ...(mode ? { mode } : {}) });
 }
 
 document.addEventListener("click", async event => {
@@ -340,12 +338,11 @@ document.addEventListener("click", async event => {
             await send({ type: action === "again" ? "start" : "home" });
             return;
         }
-        play(action, control.dataset.tool);
+        play(action, control.dataset.tool, control.dataset.startMode);
         return;
     }
-    if (parents.open || !event.target.closest("main")) return;
-    if (state.game.phase === "welcome") play("start");
-    else if (state.settings.mode === "tiny") {
+    if (parents.open || state.game.phase === "welcome" || !event.target.closest("main")) return;
+    if (state.settings.mode === "tiny") {
         play(state.game.phase === "playing" ? "help" : state.game.phase === "celebrate" ? "next" : "goodbye");
     }
 });
@@ -361,11 +358,12 @@ document.addEventListener("keydown", event => {
     if (event.key === "Tab" || event.key === "Shift") return;
     const focused = event.target.closest("button, input");
     if (focused && ["Enter", " "].includes(event.key)) return;
+    if (state.game.phase === "welcome") return;
     const isPlayKey = event.key.length === 1 || ["Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key);
     if (!isPlayKey) return;
     if (state.game.phase === "playing" && state.settings.mode === "find") return;
     event.preventDefault();
-    play({ welcome: "start", playing: "help", celebrate: "next", rest: "goodbye" }[state.game.phase]);
+    play({ playing: "help", celebrate: "next", rest: "goodbye" }[state.game.phase]);
 });
 
 document.addEventListener("visibilitychange", () => {

@@ -3,6 +3,36 @@ import assert from "node:assert/strict";
 import { MISSIONS, DEFAULT_STATE, currentMission, choices, transition, validState, PUPS, missionTeam } from "./game.mjs";
 import { icon, sceneArt, welcomeArt, crewArt, pup } from "./art.mjs";
 
+test("starting from home selects the child's mode without changing other settings", () => {
+    for (const mode of ["tiny", "find"]) {
+        const initial = structuredClone(DEFAULT_STATE);
+        initial.settings = { mode: mode === "tiny" ? "find" : "tiny", voice: false, sound: false, motion: false };
+        const previous = structuredClone(initial);
+        const { state, feedback } = transition(initial, { type: "start", mode });
+        assert.equal(feedback, "start");
+        assert.deepEqual(state.settings, { mode, voice: false, sound: false, motion: false });
+        assert.deepEqual(state.game, { phase: "playing", round: 0, missionIndex: 0, step: 0 });
+        assert.deepEqual(initial, previous);
+        assert.ok(validState(state));
+    }
+});
+
+test("start mode rejects invalid values and cannot change an active outing", () => {
+    for (const mode of ["invalid", "", null, 4, {}, []]) {
+        assert.throws(() => transition(DEFAULT_STATE, { type: "start", mode }), /Unknown play style/);
+    }
+    for (const phase of ["playing", "celebrate"]) {
+        const initial = structuredClone(DEFAULT_STATE);
+        initial.game = { ...initial.game, phase, step: phase === "playing" ? 1 : 3 };
+        assert.deepEqual(transition(initial, { type: "start", mode: "find" }).state, initial);
+    }
+    const rest = { ...structuredClone(DEFAULT_STATE), game: { phase: "rest", round: 1, missionIndex: 2, step: 3 } };
+    rest.settings.mode = "find";
+    const { state } = transition(rest, { type: "start" });
+    assert.equal(state.settings.mode, "find");
+    assert.equal(state.game.round, 2);
+});
+
 test("tiny mode accepts help without precision and leaves the original state untouched", () => {
     const initial = structuredClone(DEFAULT_STATE);
     let { state } = transition(initial, { type: "start" });
@@ -71,6 +101,34 @@ test("settings preserve progress and reject invalid inputs", () => {
     assert.throws(() => transition(saved, { type: "bad" }));
     assert.equal(validState({ ...saved, version: 2 }), false);
     assert.equal(validState({ ...saved, game: { ...saved.game, step: 4 } }), false);
+});
+
+test("goodbye returns both modes home and advances the stories exactly once", () => {
+    for (const mode of ["tiny", "find"]) {
+        const resting = structuredClone(DEFAULT_STATE);
+        resting.settings = { mode, voice: false, sound: false, motion: false };
+        resting.game = { phase: "rest", round: 0, missionIndex: 2, step: 3 };
+        const original = structuredClone(resting);
+        const result = transition(resting, { type: "goodbye" });
+        assert.equal(result.feedback, "goodbye");
+        assert.deepEqual(result.state.game, { phase: "welcome", round: 1, missionIndex: 0, step: 0 });
+        assert.deepEqual(result.state.settings, resting.settings);
+        assert.deepEqual(resting, original);
+        assert.ok(validState(result.state));
+        assert.deepEqual(transition(result.state, { type: "goodbye" }), { state: result.state, feedback: "none" });
+        const next = transition(result.state, { type: "start", mode }).state;
+        assert.equal(next.game.round, 1);
+        assert.equal(currentMission(next).id, "flowers");
+    }
+});
+
+test("goodbye cannot interrupt an unfinished rescue", () => {
+    for (const phase of ["welcome", "playing", "celebrate"]) {
+        const state = structuredClone(DEFAULT_STATE);
+        state.game.phase = phase;
+        state.game.step = phase === "celebrate" ? 3 : 0;
+        assert.deepEqual(transition(state, { type: "goodbye" }), { state, feedback: "none" });
+    }
 });
 
 test("every story renders all four progress states with self-contained artwork", () => {

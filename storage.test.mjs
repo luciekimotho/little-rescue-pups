@@ -34,6 +34,34 @@ test("progress and parent settings survive a new store instance", async () => {
     assert.equal(f.writes(), 3);
 });
 
+test("choosing a start mode and starting the outing share one durable write", async () => {
+    const f = fixture();
+    const { state } = await f.store.dispatch({ type: "start", mode: "find" });
+    assert.equal(f.writes(), 1);
+    assert.equal(f.store.load().settings.mode, "find");
+    assert.equal(f.store.load().game.phase, "playing");
+    assert.deepEqual(f.store.load(), state);
+
+    const blocked = fixture(JSON.stringify(DEFAULT_STATE));
+    blocked.storage.setItem = () => { throw new DOMException("Full", "QuotaExceededError"); };
+    assert.throws(() => blocked.store.dispatch({ type: "start", mode: "find" }), { code: "write" });
+    assert.deepEqual(blocked.store.load(), DEFAULT_STATE);
+});
+
+test("goodbye persists the home screen, but a failed save leaves the pups resting", async () => {
+    const resting = structuredClone(DEFAULT_STATE);
+    resting.game = { phase: "rest", round: 0, missionIndex: 2, step: 3 };
+    const f = fixture(JSON.stringify(resting));
+    const { state } = await f.store.dispatch({ type: "goodbye" });
+    assert.equal(f.writes(), 1);
+    assert.equal(f.store.load().game.phase, "welcome");
+    assert.deepEqual(f.store.load(), state);
+    const blocked = fixture(JSON.stringify(resting));
+    blocked.storage.setItem = () => { throw new DOMException("Full", "QuotaExceededError"); };
+    assert.throws(() => blocked.store.dispatch({ type: "goodbye" }), { code: "write" });
+    assert.deepEqual(blocked.store.load(), resting);
+});
+
 test("malformed, unknown-version and invalid saves are never silently replaced", async () => {
     for (const raw of ["bad json", "null", "{}", JSON.stringify({ ...DEFAULT_STATE, version: 2 }), JSON.stringify({ ...DEFAULT_STATE, game: { ...DEFAULT_STATE.game, step: 999 } })]) {
         const f = fixture(raw);

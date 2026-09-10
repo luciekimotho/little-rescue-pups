@@ -67,6 +67,18 @@ async function act(page, action, pause = 720) {
     await page.waitForFunction(() => document.querySelector("#app").getAttribute("aria-busy") === "false");
 }
 
+async function choosePlayer(page, mode, key) {
+    await page.waitForTimeout(720);
+    const button = page.locator(`[data-start-mode="${mode}"]`);
+    if (key) {
+        await button.focus();
+        await page.keyboard.press(key);
+    } else {
+        await button.click();
+    }
+    await page.waitForFunction(() => document.querySelector("#app").getAttribute("aria-busy") === "false");
+}
+
 async function screenshot(page, name) {
     if (!process.env.PWA_SCREENSHOTS_DIR) return;
     await mkdir(process.env.PWA_SCREENSHOTS_DIR, { recursive: true });
@@ -111,6 +123,41 @@ for (const base of ["/", "/little-rescue-pups/"]) {
         await parents(newPage);
         assert.equal(await newPage.locator('[data-setting="sound"]').isChecked(), false);
         await newPage.waitForFunction(() => document.querySelector("#offline-status").textContent.startsWith("Ready for offline play"));
+        await newPage.locator('[data-action="home"]').click();
+        await choosePlayer(newPage, "find");
+        assert.equal((await saved(newPage)).settings.mode, "find");
+        assert.equal(await newPage.locator(".choice").count(), 3);
+        await newPage.reload();
+        await newPage.locator(".choice").first().waitFor();
+        await newPage.locator('[data-tool="bridge"]').click();
+        await newPage.waitForFunction(() => document.querySelector("#app").getAttribute("aria-busy") === "false");
+        assert.equal((await saved(newPage)).game.step, 1);
+    });
+}
+
+for (const [mode, key] of [["tiny", "Enter"], ["find", "Space"]]) {
+    test(`home choice starts ${mode} with ${key}, overrides the last mode and preserves parent settings`, { timeout: 25000 }, async t => {
+        const { page } = await site(t);
+        await offlineReady(page);
+        const other = mode === "tiny" ? "find" : "tiny";
+        await parents(page);
+        await page.locator(`[data-mode="${other}"]`).click();
+        for (const setting of ["voice", "sound", "motion"]) await page.locator(`[data-setting="${setting}"]`).uncheck();
+        await closeParents(page);
+        await choosePlayer(page, mode, key);
+        assert.deepEqual((await saved(page)).settings, { mode, voice: false, sound: false, motion: false });
+        assert.equal((await saved(page)).game.phase, "playing");
+        assert.equal(await page.locator(".choice").count(), mode === "find" ? 3 : 0);
+        assert.equal(await page.locator(".help-button").count(), mode === "tiny" ? 1 : 0);
+        await page.reload();
+        await page.locator(".playing").waitFor();
+        assert.equal((await saved(page)).settings.mode, mode);
+        await parents(page);
+        await page.locator('[data-action="home"]').click();
+        await page.locator(".player-choices").waitFor();
+        await choosePlayer(page, other);
+        assert.deepEqual((await saved(page)).settings, { mode: other, voice: false, sound: false, motion: false });
+        assert.equal((await saved(page)).game.step, 0);
     });
 }
 
@@ -129,12 +176,35 @@ for (const width of [320, 390, 1024]) {
         });
         assert.ok(visiblePups.every(pup => pup.fits), JSON.stringify(visiblePups));
         assert.equal(await page.locator(".nudge").first().evaluate(element => getComputedStyle(element).animationName), "none");
+        const playerButtons = await page.locator(".player-button").evaluateAll(elements => elements.map(element => {
+            const box = element.getBoundingClientRect();
+            return { label: element.textContent.trim(), width: box.width, height: box.height, left: box.left, right: box.right, bottom: box.bottom };
+        }));
+        assert.equal(playerButtons.length, 2);
+        assert.equal(playerButtons[0].label, "EDEN");
+        assert.equal(playerButtons[1].label, "ETHAN");
+        const correctPups = await page.evaluate(async () => {
+            const { crewArt } = await import("./art.mjs");
+            return [["eden", "skye"], ["ethan", "chase"]].every(([player, pup]) => {
+                const expected = document.createElement("template");
+                expected.innerHTML = crewArt(pup);
+                const button = document.querySelector(`.player-button.${player}`);
+                const portrait = button.querySelector(".crew-portrait");
+                if (!portrait?.isEqualNode(expected.content.firstElementChild)) return false;
+                const image = portrait.getBoundingClientRect();
+                const bounds = button.getBoundingClientRect();
+                return image.width >= 50 && image.height >= 50 && image.left >= bounds.left &&
+                    image.right <= bounds.right && image.top >= bounds.top && image.bottom <= bounds.bottom;
+            });
+        });
+        assert.equal(correctPups, true, "Eden shows Skye and Ethan shows Chase, with unclipped pup icons");
+        assert.ok(playerButtons.every(box => box.width >= 120 && box.height >= 100 && box.left >= 0 && box.right <= width), JSON.stringify(playerButtons));
+        if (width <= 390) assert.ok(playerButtons.every(box => box.bottom + 6 <= height), "Both name buttons fit without scrolling on phones");
         await screenshot(page, `welcome-${width}`);
         await parents(page);
-        await page.locator('[data-mode="find"]').click();
         await page.locator('[data-setting="voice"]').uncheck();
         await closeParents(page);
-        await act(page, "start");
+        await choosePlayer(page, "find");
         await page.evaluate(() => scrollTo(0, 0));
         const bounds = await page.locator(".choice").evaluateAll(elements => elements.map(element => {
             const box = element.getBoundingClientRect();
@@ -155,14 +225,18 @@ for (const width of [320, 390, 1024]) {
     });
 }
 
-test("tiny keyboard safeguards, tap throttling and all three rescues end in rest", { timeout: 45000 }, async t => {
-    const { page } = await site(t);
+test("tiny keyboard safeguards, tap throttling and goodbye returns home after three rescues", { timeout: 45000 }, async t => {
+    const { page, context } = await site(t);
     await offlineReady(page);
     await parents(page);
     await page.locator('[data-setting="voice"]').uncheck();
     await closeParents(page);
     await page.waitForTimeout(400);
     await page.locator("main .intro").click();
+    assert.equal((await saved(page)).game.phase, "welcome");
+    await page.keyboard.press("a");
+    assert.equal((await saved(page)).game.phase, "welcome");
+    await choosePlayer(page, "tiny");
     assert.equal((await saved(page)).game.phase, "playing");
     await page.locator(".world").click();
     assert.equal((await saved(page)).game.step, 0, "Immediate second tap is ignored");
@@ -184,13 +258,23 @@ test("tiny keyboard safeguards, tap throttling and all three rescues end in rest
     }
     await page.locator(".rest").waitFor();
     const resting = await saved(page);
+    await context.setOffline(true);
     await act(page, "goodbye");
-    assert.deepEqual(await saved(page), resting);
-    assert.equal(await page.locator('[data-action="start"]').count(), 0);
-    await parents(page);
-    await page.locator('[data-action="again"]').click();
+    await page.locator(".welcome").waitFor();
+    assert.equal(await page.locator('[data-action="start"]').count(), 2);
+    const home = await saved(page);
+    assert.deepEqual(home.game, { phase: "welcome", round: 1, missionIndex: 0, step: 0 });
+    assert.deepEqual(home.settings, resting.settings);
+    await page.locator('[data-start-mode="find"]').click();
+    assert.deepEqual(await saved(page), home, "An accidental second tap does not start a new outing");
+    await page.reload();
+    await page.locator(".welcome").waitFor();
+    assert.deepEqual(await saved(page), home);
+    await choosePlayer(page, "find");
     assert.equal((await saved(page)).game.round, 1);
     assert.equal((await saved(page)).game.phase, "playing");
+    assert.equal((await saved(page)).settings.mode, "find");
+    assert.match(await page.locator(".mission-top h1").textContent(), /flowers/);
 });
 
 test("cross-tab actions serialize and refresh open parent settings", { timeout: 30000 }, async t => {
@@ -246,7 +330,7 @@ test("storage write errors keep progress and settings unchanged and visible to a
             Storage.prototype.setItem = () => { throw new DOMException("Full", "QuotaExceededError"); };
         },
     });
-    await act(page, "start");
+    await choosePlayer(page, "find");
     await page.locator("#notice").getByText("This change was not saved.", { exact: false }).waitFor();
     assert.equal(await page.locator(".welcome").count(), 1);
     assert.equal(await saved(page), null);
@@ -293,7 +377,7 @@ test("a real update waits for a grown-up, preserves saves and cleans only its ow
     const { page, context, url } = await site(t, "/little-rescue-pups/", {
         readAsset: async url => {
             const body = await readFile(url);
-            return url.pathname.endsWith("/sw.js") ? body.toString().replace('VERSION = "1.0.0"', `VERSION = "${version}"`) : body;
+            return url.pathname.endsWith("/sw.js") ? body.toString().replace(/const VERSION = "[^"]+";/, `const VERSION = "${version}";`) : body;
         },
     });
     await offlineReady(page);

@@ -1,4 +1,4 @@
-const VERSION = "1.0.0";
+const VERSION = "1.0.4";
 const PREFIX = `little-rescue-pups:${self.registration.scope}:`;
 const CACHE = `${PREFIX}${VERSION}`;
 const ASSETS = [
