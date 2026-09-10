@@ -42,7 +42,7 @@ export function createParentsPanel(dialog) {
         <div class="dialog-actions"><button data-action="home">Choose player</button><button data-action="close-parents" class="resume">Back to pups</button></div>
         <section class="device-info" aria-labelledby="device-title">
             <h3 id="device-title">This device</h3>
-            <p>Eden and Ethan each have their own save and settings in this browser. The chooser opens every time the app opens. Old shared saves are not imported. There is no device sync. Private browsing or clearing site data can erase progress.</p>
+            <p>Eden and Ethan each have their own save and settings in this browser. The chooser opens every time the app opens. There is no device sync. Private browsing or clearing site data can erase progress.</p>
             <p id="voice-status"></p>
             <p id="offline-status" role="status"></p>
             <p id="install-status"></p>

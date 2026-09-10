@@ -53,11 +53,9 @@ Menu wording varies. Installation is optional. The children do not need to navig
 
 ## Saves, offline play and voices
 
-Version 2 starts fresh profiles. The old shared save is not read, imported or assigned to either child. The separate `little-rescue-pups:profiles:v2:` localStorage key keeps new profile saves independent from older copies of the app.
+On first use, Eden and Ethan each start with a fresh profile. The game writes both profiles in one validated document after each change, preserving the other child's data. Saves belong to this browser, device, site and hosting path. An installed app may use separate storage from a browser tab on some platforms. There is no cross-device sync.
 
-The game writes both profiles in one validated document after each change, preserving the other child's data. Saves belong to this browser, device, site and hosting path. Other devices start fresh. An installed app may use separate storage from a browser tab on some platforms. There is no cross-device sync or migration from the Copilot extension.
-
-Invalid new saves are left untouched with an adult-facing error. A grown-up can explicitly reset damaged profile saves. If storage is blocked or full, the game reports that the change was not saved and does not advance. Tabs use Web Locks where available and read the newest save before each action. Per-profile revisions reject outdated actions without applying them to a different step, and storage events refresh progress without changing the selected child. In older browsers without Web Locks, use one game tab at a time to avoid simultaneous writes.
+Invalid saves are left untouched with an adult-facing error. A grown-up can explicitly reset damaged profile saves. If storage is blocked or full, the game reports that the change was not saved and does not advance. Tabs use Web Locks where available and read the newest save before each action. Per-profile revisions reject outdated actions without applying them to a different step, and storage events refresh progress without changing the selected child. In browsers without Web Locks, use one game tab at a time to avoid simultaneous writes.
 
 After a successful first download, the service worker keeps the game, drawings, icons and sounds available offline. No external fonts, artwork, analytics or voice services are loaded. Offline readiness appears only after the active worker confirms every required file is cached. Clearing browser/site data, private browsing, or the device reclaiming storage can remove offline files and saves. Reopen online after clearing cached files.
 
@@ -164,15 +162,17 @@ tests\
 
 For a future switch to recorded or pre-generated narration, start in `src\services\narration.mjs`, with recordings under `assets\audio`. The current implementation still uses only local browser voices. There is no bundler, framework or cloud speech dependency.
 
-`src\paths.mjs` derives the hosting base from the application root, not the services directory. Moving storage and PWA modules has not changed the version 2 save keys, manifest identity or service-worker scope. `sw.js` stays at the website root so it can control the entire app.
+`src\paths.mjs` derives the hosting base from the application root, not the services directory. Storage keys and PWA registration use that base. `sw.js` stays at the website root so it can control the entire app.
 
 Every new runtime file must be listed in `scripts\site-files.mjs` and the precache in `sw.js`. The deployment tests follow nested imports and stylesheet links to check that dependencies are included in the offline cache and staged website. Development files under `scripts` and `tests` are never part of that allow-list.
 
 ## Development checks
 
-Unit tests live in `tests\unit`; real-browser tests live in `tests\browser`. Tests import the same runtime modules used by the game.
+Unit tests live in `tests\unit`; real-browser tests live in `tests\browser`. Tests focus on failures that would stop play or lose data: incorrect rescue progress, mixed-up profiles, failed saves, misplaced or duplicate drops, and unavailable offline files.
 
-Keep existing mission and step IDs stable when adding content. Saved outings contain mission IDs and content versions rather than catalog positions, so catalog reordering does not change an unfinished rescue. An incompatible mission change needs an explicit save upgrade before removing the older definition. New interaction types also need rule, input and artwork support; adding a catalog entry alone is not enough.
+Browser tests exercise actual touch, mouse and keyboard input rather than recreating the DOM in test doubles. They also cover the smallest supported phone layout and real offline loading. We do not test exact markup, art colors, chime frequencies, or every combination of device width and input key.
+
+Add a test for a new behavior or a bug that could recur. Put the rule in a unit test, or test it through the browser when it depends on browser behavior. Avoid covering the same rule at both levels without a distinct integration risk.
 
 Built-in Node tests need no packages:
 
@@ -188,6 +188,6 @@ npm run test:browser
 npm run icons
 ```
 
-Set `PLAYWRIGHT_CHANNEL` to `chrome` to use an installed Chrome instead. The browser checks start and stop their own local servers. They cover profile isolation, pointer and keyboard placement, actual service-worker installation and offline chooser/resume behavior at root and subpath URLs. They do not access the source extension or its personal save.
+Set `PLAYWRIGHT_CHANNEL` to `chrome` to use an installed Chrome instead. The browser checks start and stop their own local servers and use isolated browser storage. They never touch the children's real profiles.
 
 Edit `assets\icons\icon.svg` to change the original paw badge, then regenerate the PNGs. Its artwork stays inside the central maskable safe circle. Generated 192px, 512px, padded maskable 512px and Apple 180px icons are already included.

@@ -86,7 +86,7 @@ export function createPwa(onChange) {
                         if (worker.state === "installed") updateWaiting();
                         if (worker.state === "activated") void checkOffline();
                         if (worker.state === "redundant") {
-                            status.offline = "The offline download or update did not finish. Keep the game online and reopen it to retry. Any previously saved offline version is unchanged.";
+                            status.offline = "The offline download or update did not finish. Keep the game online and reopen it to retry.";
                             emit();
                         }
                     });

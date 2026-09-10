@@ -22,7 +22,7 @@ function decode(raw) {
         throw new SaveError("corrupt", "This device's save could not be read. It has not been replaced. Retry, or ask a grown-up to reset it.", { cause, raw });
     }
     if (!validState(state)) {
-        throw new SaveError("corrupt", "This device's save is damaged or from an unsupported version. It has not been replaced.", { raw });
+        throw new SaveError("corrupt", "This device's profile save is damaged. It has not been replaced.", { raw });
     }
     return state;
 }

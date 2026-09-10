@@ -94,7 +94,7 @@ function showError(error) {
             const reset = document.createElement("button");
             reset.textContent = "Reset this device's profile saves";
             reset.addEventListener("click", async () => {
-                if (!confirm("Reset these damaged saves? Eden and Ethan's progress and settings on this device will be lost. Other devices and the original Copilot game are not affected.")) return;
+                if (!confirm("Reset these damaged saves? Eden and Ethan's progress and settings on this device will be lost. Other devices are not affected.")) return;
                 try {
                     await store.resetInvalid(error.raw);
                     load();
